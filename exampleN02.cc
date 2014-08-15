@@ -55,12 +55,19 @@
 #include "G4UIExecutive.hh"
 #endif
 
+#include <string>
 #include <vector>
 
 using namespace std;
 
+#include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+void SaveRandomSeed(long int seed, TString name);
+
 
 int main(int argc,char** argv)
 {
@@ -71,14 +78,33 @@ int main(int argc,char** argv)
 		G4cout << "		" << argv[0] << "experiment(1=strips,2=silicon)  macro" << G4endl;
 		exit(1);
 	}
+
+	// Seed the random number generator manually
+	time_t rawtime;
+	time(&rawtime);
+	G4long myseed = G4long(rawtime);
+	G4cout << "[INFO] The local time : " << myseed << G4endl;
+	// Get the process id and use it to offset the time
+	G4long pid = (G4long) getpid();
+	G4cout << "[INFO] The pid { getpid() } : " << pid << G4endl;
+	// Offset the local time
+	myseed += pid;
+	// Finally this will be the seed
+	G4cout << "[INFO] The random seed (local time + pid): " << myseed << G4endl;
+	// Save the random seed
+
+
+
 	experiment_type expt = (experiment_type) atoi(argv[1]);
 
 	// Output root file
 	TString outputfn =  "output_";
 	if(expt == __SETUP_STRIPS) {
 		outputfn += "Strips.root";
+		SaveRandomSeed(myseed, "Strips");
 	} else if(expt == __SETUP_SILICON1) {
 		outputfn += "Si.root";
+		SaveRandomSeed(myseed, "Si");
 	} else {
 		G4cout << "[ERR ] Setup requested [" << (G4int)expt << "] can't be found.  Giving up." << G4endl;
 		return 1;
@@ -123,6 +149,9 @@ int main(int argc,char** argv)
 	//
 	G4UserSteppingAction* stepping_action = new ExN02SteppingAction(output_data);
 	runManager->SetUserAction(stepping_action);
+
+	// Change the MC seed
+	CLHEP::HepRandom::setTheSeed(myseed);
 
 	// Initialize G4 kernel
 	//
@@ -177,6 +206,17 @@ int main(int argc,char** argv)
 	//delete verbosity;
 
 	return 0;
+}
+
+void SaveRandomSeed(long int seed, TString name) {
+
+	TString ofn = "randseed_";
+	ofn += name;
+	ofn += ".txt";
+	std::ofstream ofs (ofn.Data(), std::ofstream::out);
+	ofs << seed << endl;
+	ofs.close();
+
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
