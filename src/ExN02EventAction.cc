@@ -29,7 +29,7 @@
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
- 
+
 #include "ExN02EventAction.hh"
 
 #include "G4Event.hh"
@@ -39,7 +39,7 @@
 #include "G4ios.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
- 
+
 ExN02EventAction::ExN02EventAction() :
 m_outputTree(0), m_outputData(0)
 {
@@ -56,47 +56,122 @@ ExN02EventAction::ExN02EventAction(TTree * T, Outdata * od)
 
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
- 
+
 ExN02EventAction::~ExN02EventAction()
 {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
- 
+
 void ExN02EventAction::BeginOfEventAction(const G4Event*)
 {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
- 
+
 void ExN02EventAction::EndOfEventAction(const G4Event* evt)
 {
-  G4int event_id = evt->GetEventID();
-  
-  // get number of stored trajectories
-  //
-  G4TrajectoryContainer* trajectoryContainer = evt->GetTrajectoryContainer();
-  G4int n_trajectories = 0;
-  if (trajectoryContainer) n_trajectories = trajectoryContainer->entries();
-  
-  //G4cout << "N primary vertex = " << evt->GetNumberOfPrimaryVertex() << G4endl;
-  //G4PrimaryVertex * pV = evt->GetPrimaryVertex();
-  //G4cout << "next ==> " << pV->GetNext() << G4endl;
+	G4int event_id = evt->GetEventID();
 
-  // periodic printing
-  //
-  if (event_id < 100 || event_id%100 == 0) {
-    G4cout << ">>> Event " << evt->GetEventID() << G4endl;
-    G4cout << "    " << n_trajectories 
-	   << " trajectories stored in this event." << G4endl;
+	// get number of stored trajectories
+	//
+	G4TrajectoryContainer* trajectoryContainer = evt->GetTrajectoryContainer();
+	G4int n_trajectories = 0;
+	if (trajectoryContainer) n_trajectories = trajectoryContainer->entries();
+
+	//G4cout << "N primary vertex = " << evt->GetNumberOfPrimaryVertex() << G4endl;
+	//G4PrimaryVertex * pV = evt->GetPrimaryVertex();
+	//G4cout << "next ==> " << pV->GetNext() << G4endl;
+
+	// periodic printing
+	//
+	if (event_id < 100 || event_id%100 == 0) {
+		G4cout << ">>> Event " << evt->GetEventID() << G4endl;
+		G4cout << "    " << n_trajectories
+				<< " trajectories stored in this event." << G4endl;
+	}
+
+	/*
+  // Before clearing make a resume here
+  // Check the process and extract only the name checking on what repeats
+  // map<Process name, number of repetitions>
+  map<TString, int> processMap;
+  map<TString, int>::iterator it;
+
+  vector<TString>::iterator itr = m_outputData->processName.begin();
+  vector<TString>::iterator itrE = m_outputData->processName.end();
+  for( ; itr != itrE ; itr++ ) {
+	  it = processMap.find(*itr);
+	  if ( it == processMap.end() ) { // if not found start it up
+		  processMap[*itr] = 1;
+	  } else {
+		  processMap[*itr]++;
+	  }
   }
-
-  // End of event, fill the tree and clear variables
-  m_outputTree->Fill();
-  m_outputData->scatteredAngle.clear();
-  m_outputData->scatteredPhi.clear();
-  m_outputData->edep.clear();
-  m_outputData->noniedep.clear();
-  m_outputData->totalScatteringAngle = 0.;
+  // Now shorten the output vector.  No 1 to 1 correspondance anymore !
+  // We need to sort by value and not by key.
+  // Flip the map first (becomes a multimap !)
+  std::multimap<int, TString> flippedProcessMap = flip_map(processMap);
+  std::multimap<int, TString>::iterator itrF = flippedProcessMap.begin();
+  // Clear info now and refill it in order
   m_outputData->processName.clear();
+  // Fill
+  for ( ; itrF != flippedProcessMap.end() ; itrF++ ) {
+	  m_outputData->processName.push_back( itrF->second );
+  }
+	 */
+
+	// First store only the resulting angle
+	vector<double>::iterator it = m_outputData->scatteredAngle.begin();
+	vector<double>::iterator itE = m_outputData->scatteredAngle.end();
+	double angleSum = 0.;
+	for( ; it != itE ; it++ ) angleSum += *it;
+	m_outputData->scatteredAngle.clear();
+	m_outputData->scatteredAngle.push_back( angleSum );
+
+	// Now store process names by order in edep.  Map will make the key unique
+	map<TString, double> processEnergyMap;
+	map<TString, double>::iterator pEM_itr;
+
+	unsigned int iEPMax = (unsigned int) m_outputData->edep.size();
+	unsigned int iEP = 0;
+	for( ; iEP < iEPMax ; iEP++ ) {
+		pEM_itr = processEnergyMap.find( m_outputData->processName[iEP] );
+		if ( pEM_itr == processEnergyMap.end() ) {	// If not found start it up
+			processEnergyMap[ m_outputData->processName[iEP] ]  = m_outputData->edep[iEP];
+		} else { 								// Otherwise add
+			processEnergyMap[ m_outputData->processName[iEP] ] += m_outputData->edep[iEP];
+		}
+	}
+	// Now flip it
+	multimap<double, TString> processEnergyMap_flipped;
+	map<TString, double>::iterator itrEM = processEnergyMap.begin();
+	map<TString, double>::iterator itrEM_E = processEnergyMap.end();
+	for ( ; itrEM != itrEM_E ; itrEM++ ) {
+		processEnergyMap_flipped.insert ( pair<double, TString>(itrEM->second, itrEM->first ) );
+	}
+	// This map should be sorted by energy now.  In ascendent order !
+	// Copy it to the corresponding vectors
+	m_outputData->edep.clear();
+	m_outputData->processName.clear();
+
+	multimap<double, TString>::iterator i = processEnergyMap_flipped.begin();
+	multimap<double, TString>::iterator iE = processEnergyMap_flipped.end();
+	for( ; i != iE ; i++) {
+		m_outputData->edep.push_back( i->first );
+		m_outputData->processName.push_back( i->second );
+	}
+	// Reverse -> Make it descendent order.
+	reverse( m_outputData->edep.begin(), m_outputData->edep.end() );
+	reverse( m_outputData->processName.begin(), m_outputData->processName.end() );
+
+	// End of event, fill the tree and clear variables
+	m_outputTree->Fill();
+	m_outputData->scatteredAngle.clear();
+	m_outputData->edep.clear();
+	m_outputData->processName.clear();
+	// Not used
+	m_outputData->totalScatteringAngle = 0.;
+	m_outputData->scatteredPhi.clear();
+	m_outputData->noniedep.clear();
 
 }
 

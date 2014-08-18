@@ -66,12 +66,12 @@ void ExN02SteppingAction::UserSteppingAction(const G4Step * step)
 		// This is the interesting angle
 		m_outputData->scatteredAngle.push_back( CLHEP::pi - theta ); // comes in radians
 		// This direction is not reall important as the system is symetric in this direction
-		m_outputData->scatteredPhi.push_back( phi );
+		//m_outputData->scatteredPhi.push_back( phi );
 
 		//
 		m_outputData->edep.push_back( step->GetTotalEnergyDeposit()/keV );
 		//
-		m_outputData->noniedep.push_back( step->GetNonIonizingEnergyDeposit()/keV );
+		//m_outputData->noniedep.push_back( step->GetNonIonizingEnergyDeposit()/keV );
 
 		//track->Get !!!
 		G4StepPoint * postStep = step->GetPostStepPoint();
