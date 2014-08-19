@@ -1,22 +1,32 @@
 from ROOT import *
 
-def getDistribution(fn, toDraw, histoName, histoParameters, cut):
-    T = fn.Get("T")
+def getDistribution(T, toDraw, histoName, histoParameters, cut):
+    #T = fn.Get("T")
     toDraw += ">>"
     toDraw += histoName+histoParameters
     T.Draw(toDraw, cut)
     return gROOT.FindObject(histoName)
-    
 
-fStrips = TFile("./datasave/output_Strips.root", "READ")
-fSi = TFile("./datasave/output_Si.root", "READ")
+maxFile = 2
+    
+fStripsDir = "/home/idarraga/geant4/StripsVsSiliconSim-an/dataStrips/StripsVsSiliconSim-data/run_"
+fStripsFn = "output_Strips_"
+fStripsChain = TChain("T")
+for i in range(1,maxFile+1):
+    fStripsChain.Add(fStripsDir+str(i)+"/"+fStripsFn+str(i)+".root")
+
+fSiDir = "/home/idarraga/geant4/StripsVsSiliconSim-an/dataSi/StripsVsSiliconSim-data/run_"
+fSiFn = "output_Si_"
+fSiChain = TChain("T")
+for i in range(1,maxFile+1):
+    fStripsChain.Add(fStripsDir+str(i)+"/"+fStripsFn+str(i)+".root")
 
 print fStrips
 print fSi
 
 # Get distributions
-hStrips = getDistribution(fStrips,"Sum$(scatteredAngle)*180/TMath::Pi()", "h_scatteredAngle_Strips", "(300,0,3)", "")
-hSi = getDistribution(fSi,"Sum$(scatteredAngle)*180/TMath::Pi()", "h_scatteredAngle_Si", "(300,0,3)", "")
+hStrips = getDistribution(fStripsChain,"Sum$(scatteredAngle)*180/TMath::Pi()", "h_scatteredAngle_Strips", "(300,0,3)", "")
+hSi = getDistribution(fSiChain,"Sum$(scatteredAngle)*180/TMath::Pi()", "h_scatteredAngle_Si", "(300,0,3)", "")
 
 c1 = TCanvas("SiVsStrips","SiVsStrips")
 c1.cd()
@@ -72,8 +82,8 @@ c1.Update()
 
 ##########################################################
 # Energy
-h_edep_Strips = getDistribution(fStrips,"Sum$(scatteredAngle)*180/TMath::Pi():Sum$(edep)", "h_edep_Strips", "(200,0,1500,100,0,3)", "")
-h_edep_Si = getDistribution(fSi,"Sum$(scatteredAngle)*180/TMath::Pi():Sum$(edep)", "h_edep_Si", "(200,0,1500,100,0,3)", "")
+h_edep_Strips = getDistribution(fStripsChain,"Sum$(scatteredAngle)*180/TMath::Pi():Sum$(edep)", "h_edep_Strips", "(200,0,1500,100,0,3)", "")
+h_edep_Si = getDistribution(fSiChain,"Sum$(scatteredAngle)*180/TMath::Pi():Sum$(edep)", "h_edep_Si", "(200,0,1500,100,0,3)", "")
 
 c2 = TCanvas("SiVsStrips_Edep","SiVsStrips_Edep")
 c2.Divide(1,2)

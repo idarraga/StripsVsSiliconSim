@@ -38,6 +38,9 @@
 #include "G4Trajectory.hh"
 #include "G4ios.hh"
 
+#include "CLHEP/Units/SystemOfUnits.h"
+using namespace CLHEP;
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 ExN02EventAction::ExN02EventAction() :
@@ -120,12 +123,29 @@ void ExN02EventAction::EndOfEventAction(const G4Event* evt)
 	 */
 
 	// First store only the resulting angle
-	vector<double>::iterator it = m_outputData->scatteredAngle.begin();
-	vector<double>::iterator itE = m_outputData->scatteredAngle.end();
+	/*
+	unsigned int maxAL = m_outputData->scatteredAngle.size();
 	double angleSum = 0.;
-	for( ; it != itE ; it++ ) angleSum += *it;
+	for(unsigned int iAL = 0 ; iAL < maxAL ; iAL++ ) {
+
+		if ( m_outputData->scatteredPhi[iAL] >= 0. ) {
+			angleSum += m_outputData->scatteredAngle[iAL];
+		} else {
+			angleSum -= m_outputData->scatteredAngle[iAL];
+		}
+		//G4cout << m_outputData->scatteredAngle[iAL] << " --> phi : " << m_outputData->scatteredPhi[iAL] << G4endl;
+	}
 	m_outputData->scatteredAngle.clear();
-	m_outputData->scatteredAngle.push_back( angleSum );
+	*/
+	unsigned int nStepsSaved = m_outputData->steps.size();
+	G4ThreeVector firstPoint =  m_outputData->steps[ 0 ];
+	G4ThreeVector lastPoint  =  m_outputData->steps[ nStepsSaved - 1 ];
+	G4ThreeVector diffFirstLast = lastPoint - firstPoint;
+
+	m_outputData->scatteredAngle.clear();
+	m_outputData->scatteredPhi.clear();
+
+	m_outputData->scatteredAngle.push_back( CLHEP::pi - (diffFirstLast.theta()/radian) );
 
 	// Now store process names by order in edep.  Map will make the key unique
 	map<TString, double> processEnergyMap;
@@ -168,6 +188,8 @@ void ExN02EventAction::EndOfEventAction(const G4Event* evt)
 	m_outputData->scatteredAngle.clear();
 	m_outputData->edep.clear();
 	m_outputData->processName.clear();
+	// Used but not persistified
+	m_outputData->steps.clear();
 	// Not used
 	m_outputData->totalScatteringAngle = 0.;
 	m_outputData->scatteredPhi.clear();

@@ -34,6 +34,7 @@
 #define ExN02EventAction_h 1
 
 #include "G4UserEventAction.hh"
+#include "G4ThreeVector.hh"
 #include "TTree.h"
 #include "TString.h"
 
@@ -51,7 +52,8 @@ typedef struct {
 	vector<double> edep;
 	vector<double> noniedep;
 	vector<TString> processName;
-
+	// Not output
+	vector<G4ThreeVector> steps;
 } Outdata;
 
 class ExN02EventAction : public G4UserEventAction

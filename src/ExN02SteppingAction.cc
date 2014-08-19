@@ -60,13 +60,23 @@ void ExN02SteppingAction::UserSteppingAction(const G4Step * step)
 	if(track->GetTrackID() == 1) {
 
 		G4ThreeVector deltaPos = step->GetDeltaPosition();
+		G4StepPoint * preStepPoint = step->GetPreStepPoint();
+		G4ThreeVector pre = preStepPoint->GetPosition();
+
+		// Save the preStepPoint
+		m_outputData->steps.push_back( pre );
+
+		//G4cout << "Pos = " << pre.x() << " , " << pre.y() << " , " << pre.z() << G4endl;
+
 		// Theta
 		G4double theta = deltaPos.angle();
 		G4double phi = deltaPos.phi();
 		// This is the interesting angle
-		m_outputData->scatteredAngle.push_back( CLHEP::pi - theta ); // comes in radians
+		m_outputData->scatteredAngle.push_back( CLHEP::pi - (theta/radian) ); // comes in radians
+		//G4cout << ( CLHEP::pi - (theta/radian) ) * 180.0 / CLHEP::pi << " --> " << phi/radian << G4endl;
+
 		// This direction is not reall important as the system is symetric in this direction
-		//m_outputData->scatteredPhi.push_back( phi );
+		m_outputData->scatteredPhi.push_back( phi/radian );
 
 		//
 		m_outputData->edep.push_back( step->GetTotalEnergyDeposit()/keV );
@@ -86,6 +96,15 @@ void ExN02SteppingAction::UserSteppingAction(const G4Step * step)
 		}
 		m_outputData->processName.push_back( TString( procName.c_str() ) );
 
+	} else if ( track->GetTrackID() == 2 ) {
+
+		G4ThreeVector deltaPos = step->GetDeltaPosition();
+				// Theta
+				G4double theta = deltaPos.angle();
+				G4double phi = deltaPos.phi();
+				// This is the interesting angle
+				m_outputData->scatteredAngle.push_back( (theta/radian) ); // comes in radians
+				//G4cout << ( (theta/radian) ) * 180.0 / CLHEP::pi << " --> " << (phi/radian) * 180.0 / CLHEP::pi << G4endl;
 	}
 
 }
