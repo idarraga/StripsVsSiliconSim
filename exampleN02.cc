@@ -40,8 +40,14 @@
 #include "ExN02SteppingVerbose.hh"
 
 #include "G4RunManager.hh"
+#include "G4MTRunManager.hh"
 #include "G4UImanager.hh"
 #include "G4UIterminal.hh"
+
+#include "G4PhysListFactory.hh"
+#include "G4VModularPhysicsList.hh"
+
+#include "CLHEP/Random/RanecuEngine.h"
 
 #ifdef G4VIS_USE
 #include "G4VisExecutive.hh"
@@ -79,6 +85,7 @@ int main(int argc,char** argv)
 		exit(1);
 	}
 
+
 	// Seed the random number generator manually
 	time_t rawtime;
 	time(&rawtime);
@@ -91,13 +98,20 @@ int main(int argc,char** argv)
 	myseed += pid;
 	// Finally this will be the seed
 	G4cout << "[INFO] The random seed (local time + pid): " << myseed << G4endl;
-	// Save the random seed
+
+	//choose the Random engine
+	RanecuEngine * reng = new CLHEP::RanecuEngine();
+	reng->setSeed(myseed);
+	G4Random::setTheEngine(reng);
+
+	// Change the MC seed
+	//CLHEP::HepRandom::setTheSeed(myseed);
 
 
-
+	// Check the experiment type entered by the user
 	experiment_type expt = (experiment_type) atoi(argv[1]);
 
-	// Output root file
+	// Output root file and save the random seed
 	TString outputfn =  "output_";
 	if(expt == __SETUP_STRIPS) {
 		outputfn += "Strips.root";
@@ -119,22 +133,35 @@ int main(int argc,char** argv)
 	oT->Branch("noniedep", &(output_data->noniedep) );
 	oT->Branch("processName", &(output_data->processName) );
 
-	// User Verbose output class
-	//
-	G4VSteppingVerbose* verbosity = new ExN02SteppingVerbose;
-	G4VSteppingVerbose::SetInstance(verbosity);
-
 	// Run manager
 	//
 	G4RunManager * runManager = new G4RunManager;
-
+	//G4MTRunManager * runManager = new G4MTRunManager();
+	//runManager->SetNumberOfThreads(2);
 	// User Initialization classes (mandatory)
 	//
 	ExN02DetectorConstruction* detector = new ExN02DetectorConstruction(expt);
 	runManager->SetUserInitialization(detector);
+
+	// Physics List
+	G4PhysListFactory factory;
+	G4VModularPhysicsList * phys = 0;
+	//G4String physName = "FTFP_BERT";
+	G4String physName = "QGSP_BERT_EMY";
+	// reference PhysicsList via its name
+	phys = factory.GetReferencePhysList(physName);
+
 	//
-	G4VUserPhysicsList* physics = new ExN02PhysicsList;
-	runManager->SetUserInitialization(physics);
+	//G4VUserPhysicsList* physics = new ExN02PhysicsList;
+	//runManager->SetUserInitialization(physics);
+	runManager->SetUserInitialization(phys);
+
+
+	// User Verbose output class
+	//
+	//G4VSteppingVerbose* verbosity = new ExN02SteppingVerbose;
+	//G4VSteppingVerbose::SetInstance(verbosity);
+
 
 	// User Action classes
 	//
@@ -150,8 +177,6 @@ int main(int argc,char** argv)
 	G4UserSteppingAction* stepping_action = new ExN02SteppingAction(output_data);
 	runManager->SetUserAction(stepping_action);
 
-	// Change the MC seed
-	CLHEP::HepRandom::setTheSeed(myseed);
 
 	// Initialize G4 kernel
 	//

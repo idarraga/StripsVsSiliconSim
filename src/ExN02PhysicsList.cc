@@ -158,6 +158,7 @@ void ExN02PhysicsList::ConstructProcess()
 #include "G4hIonisation.hh"
 #include "G4hBremsstrahlung.hh"
 #include "G4hPairProduction.hh"
+//#include "G4hN"
 
 #include "G4CoulombScattering.hh"
 
