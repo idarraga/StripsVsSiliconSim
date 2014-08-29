@@ -93,7 +93,7 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct(){
 
 	} else if(exp_type == __SETUP_SILICON1) {
 
-		physiWorld =  Construct_SetupSilicon1();
+		physiWorld =  Construct_SetupSilicon();
 
 	} else {
 		G4cout << "[ERR ] Setup requested [" << (G4int)exp_type << "] can't be found.  Giving up." << G4endl;
@@ -102,34 +102,92 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct(){
 	return physiWorld;
 }
 
-G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupSilicon1() {
-/*
+void ExN02DetectorConstruction::BuildASiDetector(G4LogicalVolume * log_dme, G4String name){
+
+	// Determine the correct id for this detector set
+	// I'll rely on one of the vectors
+	G4int id = (G4int) solidUpStreamDetector.size();
+
+	//------------------------------
+	// Upstream detector
+	//------------------------------
+	G4ThreeVector positionUpStreamDetector = G4ThreeVector(0, 0, gD->posUpStreamDetectorZ);
+
+	solidUpStreamDetector.push_back( new G4Box("solidUpStreamDetector"+name, gD->detectorEnvelopeHx, gD->detectorEnvelopeHy, gD->detectorEnvelopeHz) );
+	logicUpStreamDetector.push_back( new G4LogicalVolume(solidUpStreamDetector[id], mD->Si, "logicUpStreamDetector"+name,0 ,0 ,0) );
+	physiUpStreamDetector.push_back( new G4PVPlacement(0,          // no rotation
+			positionUpStreamDetector,  // at (x,y,z)
+			logicUpStreamDetector[id],     // its logical volume
+			"UpStreamDetector"+name,        // its name
+			log_dme,      // its mother  volume
+			false,           // no boolean operations
+			0, true) );              // copy number
+
+	//------------------------------
+	// Downstream detector
+	//------------------------------
+	G4ThreeVector positionDownStreamDetector = G4ThreeVector(0, 0, gD->posDownStreamDetectorZ);
+	G4RotationMatrix * pRot = new G4RotationMatrix();
+	pRot->rotateY( pi );
+	solidDownStreamDetector.push_back( new G4Box("solidDownStreamDetector"+name, gD->detectorEnvelopeHx, gD->detectorEnvelopeHy, gD->detectorEnvelopeHz) );
+	logicDownStreamDetector.push_back( new G4LogicalVolume(solidDownStreamDetector[id], mD->Si, "logicDownStreamDetector"+name,0 ,0 ,0) );
+	physiDownStreamDetector.push_back( new G4PVPlacement(pRot,          // no rotation
+			positionDownStreamDetector,  // at (x,y,z)
+			logicDownStreamDetector[id],     // its logical volume
+			"DownStreamDetector"+name,        // its name
+			log_dme,      // its mother  volume
+			false,           // no boolean operations
+			0, true) );              // copy number
+
+}
+
+G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupSilicon() {
+
+	mD = new materialbits;
+
 	//--------- Material definition ---------
 	G4NistManager * nistman = G4NistManager::Instance();
-	nistman->ListMaterials("all");
+	//nistman->ListMaterials("all");
 	// Air
-	G4Material * Air = nistman->FindOrBuildMaterial("G4_AIR");
+	mD->Air = nistman->FindOrBuildMaterial("G4_AIR");
 	// Si
-	G4Material * Si = nistman->FindOrBuildMaterial("G4_Si");
-
+	mD->Si = nistman->FindOrBuildMaterial("G4_Si");
+	// Water
+	mD->Water = nistman->FindOrBuildMaterial("G4_WATER");
 
 	// Print all the materials defined.
 	G4cout << G4endl << "The materials defined are : " << G4endl << G4endl;
 	G4cout << *(G4Material::GetMaterialTable()) << G4endl;
 
 	//--------- Sizes of the principal geometrical components (solids)  ---------
+	gD = new geobits;
 
-	// WARNING ! Kapton and Strip have to fit in the envelope !
-	G4double detectorEnvelopeHx = 30*mm;
-	G4double detectorEnvelopeHy = 30*mm;
-	G4double detectorEnvelopeHz = 100*um;//
+	//
+	gD->detectorEnvelopeHx = 30*mm;
+	gD->detectorEnvelopeHy = 30*mm;
+	gD->detectorEnvelopeHz = 100*um;//
 
-	// 10cm of air in the middle, the two Silicon planes + 5cm or air on each side
-	fWorldLength = 10*cm + 4*detectorEnvelopeHz + 2*5*cm;
+	gD->SiBoxHx = 30*mm;
+	gD->SiBoxHy = 30*mm;
+	gD->SiBoxHz = 5*cm + 200*um;
 
-	G4double posUpStreamDetectorZ = 50*mm + detectorEnvelopeHz;
-	G4double posDownStreamDetectorZ = -posUpStreamDetectorZ;
+	//
+	gD->extraAfterBeamCenter = gD->SiBoxHz + 5*cm + 20*cm + 5*cm + 2*gD->SiBoxHz + 5*cm;
+	gD->fWorldLength = 300*cm + gD->extraAfterBeamCenter;
+	gD->HalfWorldLength = 0.5*gD->fWorldLength;
 
+	gD->posSiBox1Z = -gD->HalfWorldLength + 5*cm + 2*gD->SiBoxHz + 5*cm + 20*cm + 5*cm + gD->SiBoxHz;
+	gD->posSiBox2Z = -gD->HalfWorldLength + 5*cm + gD->SiBoxHz;
+
+	gD->posUpStreamDetectorZ = 50*mm + gD->detectorEnvelopeHz;
+	gD->posDownStreamDetectorZ = -gD->posUpStreamDetectorZ;
+
+	// Phantom
+	gD->posPhantomZ = -gD->HalfWorldLength + 5*cm + 2*gD->SiBoxHz + 5*cm + 10*cm;
+	gD->phantomRadius = 10*cm;
+	gD->phantomLengthHz = 20*cm;
+
+	G4cout << "Half World Length = " << gD->HalfWorldLength/mm << " mm" << G4endl;
 
 	//--------- Definitions of Solids, Logical Volumes, Physical Volumes ---------
 
@@ -137,15 +195,14 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupSilicon1() {
 	// World
 	//------------------------------
 
-	G4double HalfWorldLength = 0.5*fWorldLength;
 
-	G4GeometryManager::GetInstance()->SetWorldMaximumExtent(fWorldLength);
+	G4GeometryManager::GetInstance()->SetWorldMaximumExtent(gD->fWorldLength);
 	G4cout << "Computed tolerance = "
 			<< G4GeometryTolerance::GetInstance()->GetSurfaceTolerance()/mm
 			<< " mm" << G4endl;
 
-	solidWorld= new G4Box("world",HalfWorldLength,HalfWorldLength,HalfWorldLength);
-	logicWorld= new G4LogicalVolume( solidWorld, Air, "World", 0, 0, 0);
+	solidWorld= new G4Box("world",gD->HalfWorldLength,gD->HalfWorldLength,gD->HalfWorldLength);
+	logicWorld= new G4LogicalVolume( solidWorld, mD->Air, "World", 0, 0, 0);
 
 	//  Must place the World Physical volume unrotated at (0,0,0).
 	//
@@ -157,44 +214,74 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupSilicon1() {
 			false,           // no boolean operations
 			0);              // copy number
 
-	//------------------------------
-	// Upstream detector
-	//------------------------------
-	G4ThreeVector positionUpStreamDetector = G4ThreeVector(0, 0, posUpStreamDetectorZ);
 
-	solidUpStreamDetector = new G4Box("solidUpStreamDetector", detectorEnvelopeHx, detectorEnvelopeHy, detectorEnvelopeHz);
-	logicUpStreamDetector = new G4LogicalVolume(solidUpStreamDetector, Si, "logicUpStreamDetector",0 ,0 ,0);
-	physiUpStreamDetector = new G4PVPlacement(0,          // no rotation
-			positionUpStreamDetector,  // at (x,y,z)
-			logicUpStreamDetector,     // its logical volume
-			"UpStreamDetector",        // its name
+	//------------------------------
+	// Si detector 1
+	//------------------------------
+	G4ThreeVector positionSiBox1 = G4ThreeVector(0, 0, gD->posSiBox1Z);
+	solidSiBox = new G4Box("solidSiBox_Si1", gD->SiBoxHx, gD->SiBoxHy, gD->SiBoxHz);
+	logicSiBox = new G4LogicalVolume(solidSiBox, mD->Air, "logicSiBox_Si1", 0,0,0);
+	physiSiBox = new G4PVPlacement(0,          // no rotation
+			positionSiBox1,  // at (x,y,z)
+			logicSiBox,     // its logical volume
+			"physiSiBox_Si1",        // its name
 			logicWorld,      // its mother  volume
 			false,           // no boolean operations
 			0, true);              // copy number
 
+
+	// Build a Si detector
+	BuildASiDetector(logicSiBox, "_Si1");
+
 	//------------------------------
-	// Downstream detector
+	// Si detector 2
 	//------------------------------
-	G4ThreeVector positionDownStreamDetector = G4ThreeVector(0, 0, posDownStreamDetectorZ);
+	G4ThreeVector positionSiBox2 = G4ThreeVector(0, 0, gD->posSiBox2Z);
+	solidSiBox2 = new G4Box("solidSiBox_Si2", gD->SiBoxHx, gD->SiBoxHy, gD->SiBoxHz);
+	logicSiBox2 = new G4LogicalVolume(solidSiBox2, mD->Air, "logicSiBox_Si2", 0,0,0);
+	physiSiBox2 = new G4PVPlacement(0,          // no rotation
+			positionSiBox2,  // at (x,y,z)
+			logicSiBox2,     // its logical volume
+			"physiSiBox_Si2",        // its name
+			logicWorld,      // its mother  volume
+			false,           // no boolean operations
+			0, true);              // copy number
+
+	// Build a Gas detector
+	BuildASiDetector(logicSiBox2, "_Si2");
+
+	//------------------------------
+	// Water Phantom
+	//------------------------------
+	G4ThreeVector positionWaterPhantom = G4ThreeVector( 0, 0, gD->posPhantomZ);
 	G4RotationMatrix * pRot = new G4RotationMatrix();
-	pRot->rotateY( pi );
-	solidDownStreamDetector = new G4Box("solidDownStreamDetector", detectorEnvelopeHx, detectorEnvelopeHy, detectorEnvelopeHz);
-	logicDownStreamDetector = new G4LogicalVolume(solidDownStreamDetector, Si, "logicDownStreamDetector",0 ,0 ,0);
-	physiDownStreamDetector = new G4PVPlacement(pRot,          // no rotation
-			positionDownStreamDetector,  // at (x,y,z)
-			logicDownStreamDetector,     // its logical volume
-			"DownStreamDetector",        // its name
+	pRot->rotateY( pi/2. );
+	solidWaterPhantom = new G4Tubs("solidWaterPhantom", 0., gD->phantomRadius, gD->phantomLengthHz, 0., 2*pi);
+	logicWaterPhantom = new G4LogicalVolume(solidWaterPhantom, mD->Water, "logicWaterPhantom", 0, 0, 0);
+	physiWaterPhantom = new G4PVPlacement(pRot,
+			positionWaterPhantom, // at (x,y,z)
+			logicWaterPhantom,    // its logical volume
+			"WaterPhantom",       // its name
 			logicWorld,      // its mother  volume
 			false,           // no boolean operations
 			0, true);              // copy number
+
 
 
 	G4VisAttributes* detVisAtt = new G4VisAttributes( G4Colour::Blue() );
 	detVisAtt->SetForceSolid(true);
-	logicUpStreamDetector->SetVisAttributes(detVisAtt);
-	logicDownStreamDetector->SetVisAttributes(detVisAtt);
+	G4int nVols = (G4int) solidUpStreamDetector.size();
+	for(G4int i = 0 ; i < nVols ; i++) {
+		logicUpStreamDetector[i]->SetVisAttributes(detVisAtt);
+		logicDownStreamDetector[i]->SetVisAttributes(detVisAtt);
+	}
 
-*/
+	G4VisAttributes* phanVisAtt = new G4VisAttributes( G4Colour::Blue() );
+	phanVisAtt->SetForceSolid(true);
+	phanVisAtt->SetForceWireframe(true);
+	phanVisAtt->SetForceAuxEdgeVisible(true);
+	logicWaterPhantom->SetVisAttributes(phanVisAtt);
+
 	return physiWorld;
 }
 

@@ -6,7 +6,7 @@
 /gps/pos/type Point
 
 # Strip Setup
-/gps/pos/centre 0.0 0.0  1705.12 mm
+/gps/pos/centre 0.0 0.0 1705.12 mm
 
 /gps/ang/type iso
 
