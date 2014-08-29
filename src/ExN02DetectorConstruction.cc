@@ -45,6 +45,7 @@
 #include "G4GeometryTolerance.hh"
 #include "G4GeometryManager.hh"
 #include "G4NistManager.hh"
+#include "G4Tubs.hh"
 
 #include "G4UserLimits.hh"
 
@@ -57,9 +58,7 @@
 
 ExN02DetectorConstruction::ExN02DetectorConstruction()
 :solidWorld(0),  logicWorld(0),  physiWorld(0),
- stepLimit(0), fpMagField(0),
- fWorldLength(0.),
- NbOfChambers(0)
+ stepLimit(0), fpMagField(0)
 {
 	fpMagField = new ExN02MagneticField();
 	detectorMessenger = new ExN02DetectorMessenger(this);
@@ -67,9 +66,7 @@ ExN02DetectorConstruction::ExN02DetectorConstruction()
 
 ExN02DetectorConstruction::ExN02DetectorConstruction(experiment_type et)
 :solidWorld(0),  logicWorld(0),  physiWorld(0),
- stepLimit(0), fpMagField(0),
- fWorldLength(0.),
- NbOfChambers(0)
+ stepLimit(0), fpMagField(0)
 {
 	fpMagField = new ExN02MagneticField();
 	detectorMessenger = new ExN02DetectorMessenger(this);
@@ -92,7 +89,7 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct(){
 
 	if(exp_type == __SETUP_STRIPS) {
 
-		physiWorld = Construct_SetupStrips();
+		physiWorld = Construct_SetupGas();
 
 	} else if(exp_type == __SETUP_SILICON1) {
 
@@ -106,14 +103,15 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct(){
 }
 
 G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupSilicon1() {
-
+/*
 	//--------- Material definition ---------
 	G4NistManager * nistman = G4NistManager::Instance();
-	//nistman->ListMaterials("all");
+	nistman->ListMaterials("all");
 	// Air
 	G4Material * Air = nistman->FindOrBuildMaterial("G4_AIR");
 	// Si
 	G4Material * Si = nistman->FindOrBuildMaterial("G4_Si");
+
 
 	// Print all the materials defined.
 	G4cout << G4endl << "The materials defined are : " << G4endl << G4endl;
@@ -196,22 +194,28 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupSilicon1() {
 	logicUpStreamDetector->SetVisAttributes(detVisAtt);
 	logicDownStreamDetector->SetVisAttributes(detVisAtt);
 
-
+*/
 	return physiWorld;
 }
 
-G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupStrips()
+G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupGas()
 {
+
+	mD = new materialbits;
 
 	//--------- Material definition ---------
 	G4NistManager * nistman = G4NistManager::Instance();
 	//nistman->ListMaterials("all");
 	// Air
-	G4Material * Air = nistman->FindOrBuildMaterial("G4_AIR");
+	mD->Air = nistman->FindOrBuildMaterial("G4_AIR");
 	// KAPTON
-	G4Material * Kapton = nistman->FindOrBuildMaterial("G4_KAPTON");
+	mD->Kapton = nistman->FindOrBuildMaterial("G4_KAPTON");
 	// Al
-	G4Material * Al = nistman->FindOrBuildMaterial("G4_Al");
+	mD->Al = nistman->FindOrBuildMaterial("G4_Al");
+	// Water
+	mD->Water = nistman->FindOrBuildMaterial("G4_WATER");
+
+	//G4_CARBON_DIOXIDE
 
 	// DME, gas --> C2H6O
 	G4double a, z;            // z=mean number of protons;
@@ -225,10 +229,10 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupStrips()
 	G4double DME_density     = 0.0021146*g/cm3;
 	G4int DME_ncomponents = 3;
 	// temperature and pressure by default are STP
-	G4Material * DME = new G4Material("DME", DME_density, DME_ncomponents, kStateGas);
-	DME->AddElement(elC, 2);
-	DME->AddElement(elH, 6);
-	DME->AddElement(elO, 1);
+	mD->DME = new G4Material("DME", DME_density, DME_ncomponents, kStateGas);
+	mD->DME->AddElement(elC, 2);
+	mD->DME->AddElement(elH, 6);
+	mD->DME->AddElement(elO, 1);
 
 	// Print all the materials defined.
 	//
@@ -237,53 +241,65 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupStrips()
 
 	//--------- Sizes of the principal geometrical components (solids)  ---------
 
+	gD = new geobits;
 
 	// WARNING ! Kapton and Strip have to fit in the envelope !
-	G4double detectorEnvelopeHx = 30*mm;
-	G4double detectorEnvelopeHy = 30*mm;
-	G4double detectorEnvelopeHz = 40*um;//*100;
+	gD->detectorEnvelopeHx = 30*mm;
+	gD->detectorEnvelopeHy = 30*mm;
+	gD->detectorEnvelopeHz = 40*um;//*100;
 
-	G4double kaptonHx = 30*mm;
-	G4double kaptonHy = 30*mm;
-	G4double kaptonHz = 25*um;//*100;
+	gD->kaptonHx = 30*mm;
+	gD->kaptonHy = 30*mm;
+	gD->kaptonHz = 25*um;//*100;
 
-	G4double stripsHx = 30*mm;
-	G4double stripsHy = 30*mm;
-	G4double stripsHz = 15*um;//*100;
+	gD->stripsHx = 30*mm;
+	gD->stripsHy = 30*mm;
+	gD->stripsHz = 15*um;//*100;
 
 	// The two detectors fit in the DME container leaving an
 	//  effective distance of 4cm in between them.
-	G4double DMEContainerHx = 30*mm;
-	G4double DMEContainerHy = 30*mm;
-	G4double DMEContainerHz = 20*mm + kaptonHz*2 + stripsHz*2;
+	gD->DMEContainerHx = 30*mm;
+	gD->DMEContainerHy = 30*mm;
+	gD->DMEContainerHz = 20*mm + gD->kaptonHz*2 + gD->stripsHz*2;
+
+	// Phantom
+	gD->phantomRadius = 10*cm;
+	gD->phantomLengthHz = 20*cm;
 
 	// The DME + 5cm on each side
-	fWorldLength = 2*DMEContainerHz + 2*50*mm;
+	//fWorldLength = 2*DMEContainerHz + 2*50*mm;
+	// World Length = 3m down to the center of the DME box + half of the DME box +
+	// 				  5cm up to the water phantom + 20cm of water phantom +
+	//				  5cm after phantom + DME box + 5cm downstream
+	gD->extraAfterBeamCenter = gD->DMEContainerHz + 5*cm + 20*cm + 5*cm + 2*gD->DMEContainerHz + 5*cm;
+	gD->fWorldLength = 300*cm + gD->extraAfterBeamCenter;
+	gD->HalfWorldLength = 0.5*gD->fWorldLength;
+	gD->posPhantomZ = -gD->HalfWorldLength + 5*cm + 2*gD->DMEContainerHz + 5*cm + 10*cm;
 
-	G4double posUpStreamDetectorZ = 20*mm + kaptonHz+stripsHz;
-	G4double posDownStreamDetectorZ = -posUpStreamDetectorZ;
+	G4cout << "Half World Length = " << gD->HalfWorldLength/mm << " mm" << G4endl;
 
-	NbOfChambers = 15;
-	stripWidth = 2*mm;
-	stripsPitch = 2*stripWidth;
+	gD->posUpStreamDetectorZ = 20*mm + gD->kaptonHz+gD->stripsHz;
+	gD->posDownStreamDetectorZ = -gD->posUpStreamDetectorZ;
+	gD->posDMEContainer1Z = -gD->HalfWorldLength + gD->extraAfterBeamCenter;
+	gD->posDMEContainer2Z = -gD->HalfWorldLength + 5*cm + gD->DMEContainerHz;
+
+	gD->stripWidth = 2*mm;
+	gD->stripsPitch = 2*gD->stripWidth;
 	// Make enough chambers to cover 50% of the area
-	NbOfChambers = (G4int)(detectorEnvelopeHy*2 / stripsPitch);
+	gD->NbOfChambers = (G4int)(gD->detectorEnvelopeHy*2 / gD->stripsPitch);
 
 	//--------- Definitions of Solids, Logical Volumes, Physical Volumes ---------
 
 	//------------------------------
 	// World
 	//------------------------------
-
-	G4double HalfWorldLength = 0.5*fWorldLength;
-
-	G4GeometryManager::GetInstance()->SetWorldMaximumExtent(fWorldLength);
+	G4GeometryManager::GetInstance()->SetWorldMaximumExtent(gD->fWorldLength);
 	G4cout << "Computed tolerance = "
 			<< G4GeometryTolerance::GetInstance()->GetSurfaceTolerance()/mm
 			<< " mm" << G4endl;
 
-	solidWorld= new G4Box("world",HalfWorldLength,HalfWorldLength,HalfWorldLength);
-	logicWorld= new G4LogicalVolume( solidWorld, Air, "World", 0, 0, 0);
+	solidWorld= new G4Box("world",gD->HalfWorldLength,gD->HalfWorldLength,gD->HalfWorldLength);
+	logicWorld= new G4LogicalVolume( solidWorld, mD->Air, "World", 0, 0, 0);
 
 	//  Must place the World Physical volume unrotated at (0,0,0).
 	//
@@ -296,145 +312,56 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupStrips()
 			0);              // copy number
 
 	//------------------------------
-	// DME container
+	// DME container 1
 	//------------------------------
-	G4ThreeVector positionDMEContainer = G4ThreeVector(0, 0, 0);
+	G4ThreeVector positionDMEContainer1 = G4ThreeVector(0, 0, gD->posDMEContainer1Z);
 
-	solidDMEContainer = new G4Box("solidDMEContainer", DMEContainerHx, DMEContainerHy, DMEContainerHz);
-	logicDMEContainer = new G4LogicalVolume(solidDMEContainer, DME, "logicDMEContainer",0 ,0 ,0);
+	solidDMEContainer = new G4Box("solidDMEContainer_GAS1", gD->DMEContainerHx, gD->DMEContainerHy, gD->DMEContainerHz);
+	logicDMEContainer = new G4LogicalVolume(solidDMEContainer, mD->DME, "logicDMEContainer_GAS1",0 ,0 ,0);
 	physiDMEContainer = new G4PVPlacement(0,          // no rotation
-			positionDMEContainer,  // at (x,y,z)
+			positionDMEContainer1,  // at (x,y,z)
 			logicDMEContainer,     // its logical volume
-			"DMEContainer",        // its name
+			"DMEContainer_GAS1",        // its name
 			logicWorld,      // its mother  volume
 			false,           // no boolean operations
 			0, true);              // copy number
 
-	//------------------------------
-	// Upstream detector
-	//------------------------------
-	G4ThreeVector positionUpStreamDetector = G4ThreeVector(0, 0, posUpStreamDetectorZ);
+	// Build a Gas detector
+	BuildAGasDetector(logicDMEContainer, "_GAS1");
 
-	solidUpStreamDetector = new G4Box("solidUpStreamDetector", detectorEnvelopeHx, detectorEnvelopeHy, detectorEnvelopeHz);
-	logicUpStreamDetector = new G4LogicalVolume(solidUpStreamDetector, Air, "logicUpStreamDetector",0 ,0 ,0);
-	physiUpStreamDetector = new G4PVPlacement(0,          // no rotation
-			positionUpStreamDetector,  // at (x,y,z)
-			logicUpStreamDetector,     // its logical volume
-			"UpStreamDetector",        // its name
-			logicDMEContainer,      // its mother  volume
+	//------------------------------
+	// DME container 2
+	//------------------------------
+	G4ThreeVector positionDMEContainer2 = G4ThreeVector(0, 0, gD->posDMEContainer2Z);
+	solidDMEContainer2 = new G4Box("solidDMEContainer_GAS2", gD->DMEContainerHx, gD->DMEContainerHy, gD->DMEContainerHz);
+	logicDMEContainer2 = new G4LogicalVolume(solidDMEContainer2, mD->DME, "logicDMEContainer_GAS2", 0 ,0 ,0);
+	physiDMEContainer2 = new G4PVPlacement(0,          // no rotation
+			positionDMEContainer2,  // at (x,y,z)
+			logicDMEContainer2,     // its logical volume
+			"DMEContainer_GAS2",        // its name
+			logicWorld,      	// its mother  volume
 			false,           // no boolean operations
-			0);              // copy number
+			0, true);              // copy number
+
+	// Build a Gas detector
+	BuildAGasDetector(logicDMEContainer2, "_GAS2");
+
 
 	//------------------------------
-	// Downstream detector
+	// Water Phantom
 	//------------------------------
-
-	G4ThreeVector positionDownStreamDetector = G4ThreeVector(0, 0, posDownStreamDetectorZ);
+	G4ThreeVector positionWaterPhantom = G4ThreeVector( 0, 0, gD->posPhantomZ);
 	G4RotationMatrix * pRot = new G4RotationMatrix();
-	pRot->rotateY( pi );
-	solidDownStreamDetector = new G4Box("solidDownStreamDetector", detectorEnvelopeHx, detectorEnvelopeHy, detectorEnvelopeHz);
-	logicDownStreamDetector = new G4LogicalVolume(solidDownStreamDetector, Air, "logicDownStreamDetector",0 ,0 ,0);
-	physiDownStreamDetector = new G4PVPlacement(pRot,          // no rotation
-			positionDownStreamDetector,  // at (x,y,z)
-			logicDownStreamDetector,     // its logical volume
-			"DownStreamDetector",        // its name
-			logicDMEContainer,      // its mother  volume
-			false,           // no boolean operations
-			0);              // copy number
-
-	//------------------------------
-	// Kapton Upstream
-	//------------------------------
-	G4ThreeVector positionKaptonUS = G4ThreeVector( 0, 0, stripsHz );
-
-	solidKapton = new G4Box("solidKapton", kaptonHx, kaptonHy, kaptonHz);
-	logicKaptonUS = new G4LogicalVolume(solidKapton, Kapton, "logicKaptonUS", 0, 0, 0);
-	physiKaptonUS = new G4PVPlacement(0,              // no rotation
-			positionKaptonUS, // at (x,y,z)
-			logicKaptonUS,    // its logical volume
-			"KaptonUS",       // its name
-			logicUpStreamDetector,      // its mother  volume
+	pRot->rotateY( pi/2. );
+	solidWaterPhantom = new G4Tubs("solidWaterPhantom", 0., gD->phantomRadius, gD->phantomLengthHz, 0., 2*pi);
+	logicWaterPhantom = new G4LogicalVolume(solidWaterPhantom, mD->Water, "logicWaterPhantom", 0, 0, 0);
+	physiWaterPhantom = new G4PVPlacement(pRot,
+			positionWaterPhantom, // at (x,y,z)
+			logicWaterPhantom,    // its logical volume
+			"WaterPhantom",       // its name
+			logicWorld,      // its mother  volume
 			false,           // no boolean operations
 			0, true);              // copy number
-	//------------------------------
-	// Strips envelope Upstream
-	//------------------------------
-	G4ThreeVector positionStripsEnvelopeUS = G4ThreeVector( 0, 0, -kaptonHz );
-	solidStripsEnv = new G4Box("stripsEnv", stripsHx, stripsHy, stripsHz);
-	logicUSStripsEnv = new G4LogicalVolume(solidStripsEnv, Air, "logicUSStripsEnv", 0, 0, 0);
-	physiUSStripsEnv = new G4PVPlacement(0,              // no rotation
-			positionStripsEnvelopeUS, // at (x,y,z)
-			logicUSStripsEnv,    // its logical volume
-			"StripsUSEnv",       // its name
-			logicUpStreamDetector,      // its mother  volume
-			false,           // no boolean operations
-			0, true);              // copy number
-
-	//------------------------------
-	// Kapton Downstream
-	//------------------------------
-	G4ThreeVector positionKaptonDS = G4ThreeVector( 0, 0, stripsHz );
-
-	logicKaptonDS = new G4LogicalVolume(solidKapton, Kapton, "logicKaptonDS", 0, 0, 0);
-	physiKaptonDS = new G4PVPlacement(0,              // no rotation
-			positionKaptonDS, // at (x,y,z)
-			logicKaptonDS,    // its logical volume
-			"KaptonDS",       // its name
-			logicDownStreamDetector,      // its mother  volume
-			false,           // no boolean operations
-			0, true);              // copy number
-	//------------------------------
-	// Strips envelope Downstream
-	//------------------------------
-	G4ThreeVector positionStripsEnvelopeDS = G4ThreeVector( 0, 0, -kaptonHz);
-	logicDSStripsEnv = new G4LogicalVolume(solidStripsEnv, Air, "logicDSStripsEnv", 0, 0, 0);
-	physiDSStripsEnv = new G4PVPlacement(0,              // no rotation
-			positionStripsEnvelopeDS, // at (x,y,z)
-			logicDSStripsEnv,    // its logical volume
-			"StripsDSEnv",       // its name
-			logicDownStreamDetector,      // its mother  volume
-			false,           // no boolean operations
-			0, true);              // copy number
-
-	//------------------------------
-	// Strip segments US
-	//------------------------------
-	solidStrips = new G4Box("solidStrips", stripsHx, stripsHy, stripsHz);
-	logicStripsUS = new G4LogicalVolume(solidStrips, Al, "logicStrips", 0, 0, 0);
-
-	G4double firstPosition = -detectorEnvelopeHy + 0.5*stripWidth;
-	stripsParam = new ExN02ChamberParameterisation(
-			NbOfChambers,          // NoChambers
-			firstPosition,         // Y of center of first
-			stripsPitch,           // Y spacing of centers
-			stripWidth,            // Width Chamber
-			stripsHx,
-			stripsHz);
-
-	physiStripsUS = new G4PVParameterised(
-			"StripsUS",       // their name
-			logicStripsUS,      // their logical volume
-			logicUSStripsEnv,    // Mother logical volume
-			kYAxis,           // Are placed along this axis
-			NbOfChambers,     // Number of chambers
-			stripsParam, true);     // The parametrisation
-
-	G4cout << "There are " << NbOfChambers << " chambers in the Strips US region" << G4endl;
-
-	//------------------------------
-	// Strip segments DS
-	//------------------------------
-	logicStripsDS = new G4LogicalVolume(solidStrips, Al, "logicStrips", 0, 0, 0);
-	physiStripsDS = new G4PVParameterised(
-			"StripsDS",       // their name
-			logicStripsDS,      // their logical volume
-			logicDSStripsEnv,    // Mother logical volume
-			kYAxis,           // Are placed along this axis
-			NbOfChambers,     // Number of chambers
-			stripsParam, true);     // The parametrisation
-
-	G4cout << "There are " << NbOfChambers << " chambers in the Strips DS region" << G4endl;
-
 
 	//------------------------------------------------
 	// Sensitive detectors
@@ -447,15 +374,6 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupStrips()
 	SDman->AddNewDetector( aTrackerSD );
 	logicChamber->SetSensitiveDetector( aTrackerSD );
 
-	//--------- Visualization attributes -------------------------------
-
-	G4VisAttributes* BoxVisAtt= new G4VisAttributes(G4Colour(1.0,1.0,1.0));
-	logicWorld  ->SetVisAttributes(BoxVisAtt);
-	logicTarget ->SetVisAttributes(BoxVisAtt);
-	logicTracker->SetVisAttributes(BoxVisAtt);
-
-	G4VisAttributes* ChamberVisAtt = new G4VisAttributes(G4Colour(1.0,1.0,0.0));
-	logicChamber->SetVisAttributes(ChamberVisAtt);
 
 	//--------- example of User Limits -------------------------------
 
@@ -476,23 +394,160 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupStrips()
 	//                                               minEkin));
 	 */
 
+	G4int nVols = (G4int) solidUpStreamDetector.size();
 	G4VisAttributes* kaptonVisAtt = new G4VisAttributes( G4Colour::Yellow() );
 	kaptonVisAtt->SetForceSolid(true);
-	logicKaptonUS->SetVisAttributes(kaptonVisAtt);
-	logicKaptonDS->SetVisAttributes(kaptonVisAtt);
-
 	G4VisAttributes* stripsVisAtt = new G4VisAttributes( G4Colour::Red() );
 	stripsVisAtt->SetForceSolid(true);
-	logicStripsUS->SetVisAttributes(stripsVisAtt);
-	logicStripsDS->SetVisAttributes(stripsVisAtt);
 
-	//logicUSStripsEnv->Set
-
-	//G4VisAttributes* UpStreamDetectorVisAtt = new G4VisAttributes( G4Colour::Red() );
-	//UpStreamDetectorVisAtt->SetForceSolid(true);
-	//logicUpStreamDetector->SetVisAttributes(UpStreamDetectorVisAtt);
+	for(G4int i = 0 ; i < nVols ; i++) {
+		logicKaptonUS[i]->SetVisAttributes(kaptonVisAtt);
+		logicKaptonDS[i]->SetVisAttributes(kaptonVisAtt);
+		logicStripsUS[i]->SetVisAttributes(stripsVisAtt);
+		logicStripsDS[i]->SetVisAttributes(stripsVisAtt);
+	}
+	G4VisAttributes* phanVisAtt = new G4VisAttributes( G4Colour::Blue() );
+	phanVisAtt->SetForceSolid(true);
+	phanVisAtt->SetForceWireframe(true);
+	phanVisAtt->SetForceAuxEdgeVisible(true);
+	logicWaterPhantom->SetVisAttributes(phanVisAtt);
 
 	return physiWorld;
+}
+
+void ExN02DetectorConstruction::BuildAGasDetector(G4LogicalVolume * log_dme, G4String name){
+
+	// Determine the correct id for this detector set
+	// I'll rely on one of the vectors
+	G4int id = (G4int) solidUpStreamDetector.size();
+
+
+	//------------------------------
+	// Upstream detector
+	//------------------------------
+	G4ThreeVector positionUpStreamDetector = G4ThreeVector(0, 0, gD->posUpStreamDetectorZ);
+
+	solidUpStreamDetector.push_back( new G4Box("solidUpStreamDetector"+name, gD->detectorEnvelopeHx, gD->detectorEnvelopeHy, gD->detectorEnvelopeHz) );
+	logicUpStreamDetector.push_back( new G4LogicalVolume(solidUpStreamDetector[id], mD->Air, "logicUpStreamDetector"+name,0 ,0 ,0) );
+	physiUpStreamDetector.push_back( new G4PVPlacement(0,          // no rotation
+			positionUpStreamDetector,  // at (x,y,z)
+			logicUpStreamDetector[id],     // its logical volume
+			"UpStreamDetector"+name,        // its name
+			log_dme,      // its mother  volume
+			false,           // no boolean operations
+			0) );              // copy number
+
+	//------------------------------
+	// Downstream detector
+	//------------------------------
+
+	G4ThreeVector positionDownStreamDetector = G4ThreeVector(0, 0, gD->posDownStreamDetectorZ);
+	G4RotationMatrix * pRot = new G4RotationMatrix();
+	pRot->rotateY( pi );
+	solidDownStreamDetector.push_back( new G4Box("solidDownStreamDetector"+name, gD->detectorEnvelopeHx, gD->detectorEnvelopeHy, gD->detectorEnvelopeHz) );
+	logicDownStreamDetector.push_back( new G4LogicalVolume(solidDownStreamDetector[id], mD->Air, "logicDownStreamDetector"+name,0 ,0 ,0) );
+	physiDownStreamDetector.push_back( new G4PVPlacement(pRot,          // no rotation
+			positionDownStreamDetector,  // at (x,y,z)
+			logicDownStreamDetector[id],     // its logical volume
+			"DownStreamDetector"+name,        // its name
+			log_dme,      // its mother  volume
+			false,           // no boolean operations
+			0) );              // copy number
+
+	//------------------------------
+	// Kapton Upstream
+	//------------------------------
+	G4ThreeVector positionKaptonUS = G4ThreeVector( 0, 0, gD->stripsHz );
+
+	solidKapton.push_back( new G4Box("solidKapton"+name, gD->kaptonHx, gD->kaptonHy, gD->kaptonHz) );
+	logicKaptonUS.push_back( new G4LogicalVolume(solidKapton[id], mD->Kapton, "logicKaptonUS"+name, 0, 0, 0) );
+	physiKaptonUS.push_back( new G4PVPlacement(0,              // no rotation
+			positionKaptonUS, // at (x,y,z)
+			logicKaptonUS[id],    // its logical volume
+			"KaptonUS"+name,       // its name
+			logicUpStreamDetector[id],      // its mother  volume
+			false,           // no boolean operations
+			0, true) );              // copy number
+	//------------------------------
+	// Strips envelope Upstream
+	//------------------------------
+	G4ThreeVector positionStripsEnvelopeUS = G4ThreeVector( 0, 0, -gD->kaptonHz );
+	solidStripsEnv.push_back( new G4Box("stripsEnv"+name, gD->stripsHx, gD->stripsHy, gD->stripsHz) );
+	logicUSStripsEnv.push_back( new G4LogicalVolume(solidStripsEnv[id], mD->Air, "logicUSStripsEnv"+name, 0, 0, 0) );
+	physiUSStripsEnv.push_back( new G4PVPlacement(0,              // no rotation
+			positionStripsEnvelopeUS, // at (x,y,z)
+			logicUSStripsEnv[id],    // its logical volume
+			"StripsUSEnv"+name,       // its name
+			logicUpStreamDetector[id],      // its mother  volume
+			false,           // no boolean operations
+			0, true) );              // copy number
+
+	//------------------------------
+	// Kapton Downstream
+	//------------------------------
+	G4ThreeVector positionKaptonDS = G4ThreeVector( 0, 0, gD->stripsHz );
+
+	logicKaptonDS.push_back( new G4LogicalVolume(solidKapton[id], mD->Kapton, "logicKaptonDS"+name, 0, 0, 0) );
+	physiKaptonDS.push_back( new G4PVPlacement(0,              // no rotation
+			positionKaptonDS, // at (x,y,z)
+			logicKaptonDS[id],    // its logical volume
+			"KaptonDS"+name,       // its name
+			logicDownStreamDetector[id],      // its mother  volume
+			false,           // no boolean operations
+			0, true) );              // copy number
+
+	//------------------------------
+	// Strips envelope Downstream
+	//------------------------------
+	G4ThreeVector positionStripsEnvelopeDS = G4ThreeVector( 0, 0, -gD->kaptonHz);
+	logicDSStripsEnv.push_back( new G4LogicalVolume(solidStripsEnv[id], mD->Air, "logicDSStripsEnv"+name, 0, 0, 0) );
+	physiDSStripsEnv.push_back( new G4PVPlacement(0,              // no rotation
+			positionStripsEnvelopeDS, // at (x,y,z)
+			logicDSStripsEnv[id],    // its logical volume
+			"StripsDSEnv"+name,       // its name
+			logicDownStreamDetector[id],      // its mother  volume
+			false,           // no boolean operations
+			0, true) );              // copy number
+
+	//------------------------------
+	// Strip segments US
+	//------------------------------
+	solidStrips.push_back( new G4Box("solidStrips"+name, gD->stripsHx, gD->stripsHy, gD->stripsHz) );
+	logicStripsUS.push_back( new G4LogicalVolume(solidStrips[id], mD->Al, "logicStrips"+name, 0, 0, 0) );
+
+	G4double firstPosition = -gD->detectorEnvelopeHy + 0.5*gD->stripWidth;
+	stripsParam.push_back( new ExN02ChamberParameterisation(
+			gD->NbOfChambers,          // NoChambers
+			firstPosition,         // Y of center of first
+			gD->stripsPitch,           // Y spacing of centers
+			gD->stripWidth,            // Width Chamber
+			gD->stripsHx,
+			gD->stripsHz) );
+
+	physiStripsUS.push_back( new G4PVParameterised(
+			"StripsUS"+name,       // their name
+			logicStripsUS[id],      // their logical volume
+			logicUSStripsEnv[id],    // Mother logical volume
+			kYAxis,           // Are placed along this axis
+			gD->NbOfChambers,     // Number of chambers
+			stripsParam[id], true) );     // The parametrisation
+
+	G4cout << "There are " << gD->NbOfChambers << " chambers in the Strips US region" << G4endl;
+
+	//------------------------------
+	// Strip segments DS
+	//------------------------------
+	logicStripsDS.push_back( new G4LogicalVolume(solidStrips[id], mD->Al, "logicStrips"+name, 0, 0, 0) );
+	physiStripsDS.push_back( new G4PVParameterised(
+			"StripsDS"+name,       // their name
+			logicStripsDS[id],      // their logical volume
+			logicDSStripsEnv[id],    // Mother logical volume
+			kYAxis,           // Are placed along this axis
+			gD->NbOfChambers,     // Number of chambers
+			stripsParam[id], true) );     // The parametrisation
+
+	G4cout << "There are " << gD->NbOfChambers << " chambers in the Strips DS region" << G4endl;
+
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

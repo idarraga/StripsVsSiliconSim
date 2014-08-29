@@ -13,6 +13,10 @@
 
 /gps/pos/halfy 25 mm
 /gps/pos/halfx 25 mm 
+
+/gps/ang/type iso
+/gps/ang/maxtheta 45 deg
+
 /gps/direction  0 0 -1
 /gps/ene/type User
 /gps/hist/type energy
@@ -22,3 +26,4 @@
 /gps/source/list
 
 /run/beamOn 100000
+

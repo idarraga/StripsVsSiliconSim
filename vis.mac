@@ -45,19 +45,23 @@
 #########################
 # GPS
 /gps/particle proton
-/gps/pos/type Plane
-#/gps/pos/rot1 0 0 1
-#/gps/pos/rot2 1 0 0
-/gps/pos/shape Rectangle
+/gps/pos/type Point
 
 # Strip Setup
-#/gps/pos/centre 0.0 0.0 70.0 mm
+/gps/pos/centre 0.0 0.0  1705.12 mm
 # Silicon Setup
-/gps/pos/centre 0.0 0.0 100.0 mm
+#/gps/pos/centre 0.0 0.0 100.0 mm
 
-/gps/pos/halfy 25 mm
-/gps/pos/halfx 25 mm 
-/gps/direction  0 0 -1
+
+/gps/ang/type iso
+
+/gps/ang/mintheta 0
+/gps/ang/maxtheta 0.01049961415052362
+/gps/ang/minphi 0
+/gps/ang/maxphi 6.28318
+
+#/gps/direction  0 0 -1
+
 /gps/ene/type User
 /gps/hist/type energy
 # spectra
@@ -65,7 +69,7 @@
 
 /gps/source/list
 
-/run/beamOn 1
+/run/beamOn 10
 
 #/gun/particle proton
 #/gun/energy 200 MeV

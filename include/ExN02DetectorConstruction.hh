@@ -45,6 +45,7 @@ using namespace std;
 #include "ExN02MagneticField.hh"
 
 class G4Box;
+class G4Tubs;
 class G4LogicalVolume;
 class G4VPhysicalVolume;
 class G4Material;
@@ -71,10 +72,12 @@ class ExN02DetectorConstruction : public G4VUserDetectorConstruction
   public:
   
      G4VPhysicalVolume * Construct();
-     G4VPhysicalVolume * Construct_SetupStrips();
+     G4VPhysicalVolume * Construct_SetupGas();
      G4VPhysicalVolume * Construct_SetupSilicon1();
 
-     G4double GetWorldFullLength()   {return fWorldLength;}; 
+     void BuildAGasDetector(G4LogicalVolume *, G4String name);
+
+     G4double GetWorldFullLength()   {return gD->fWorldLength;};
      
      void setTargetMaterial (G4String);
      void setChamberMaterial(G4String);
@@ -90,48 +93,103 @@ class ExN02DetectorConstruction : public G4VUserDetectorConstruction
      G4Box*             solidDMEContainer;    //
      G4LogicalVolume*   logicDMEContainer;    //
      G4VPhysicalVolume* physiDMEContainer;    //
+     G4Box*             solidDMEContainer2;    //
+     G4LogicalVolume*   logicDMEContainer2;    //
+     G4VPhysicalVolume* physiDMEContainer2;    //
 
-     G4Box*             solidUpStreamDetector;   //
-     G4LogicalVolume*   logicUpStreamDetector;   //
-     G4VPhysicalVolume* physiUpStreamDetector;   //
+     vector<G4Box*>             solidUpStreamDetector;   //
+     vector<G4LogicalVolume*>   logicUpStreamDetector;   //
+     vector<G4VPhysicalVolume*> physiUpStreamDetector;   //
 
-     G4Box*             solidStripsEnv;   //
-     G4LogicalVolume*   logicUSStripsEnv; //
-     G4VPhysicalVolume* physiUSStripsEnv; //
-     G4LogicalVolume*   logicDSStripsEnv; //
-     G4VPhysicalVolume* physiDSStripsEnv; //
+     vector<G4Box*>             solidStripsEnv;   //
+     vector<G4LogicalVolume*>   logicUSStripsEnv; //
+     vector<G4VPhysicalVolume*> physiUSStripsEnv; //
+     vector<G4LogicalVolume*>   logicDSStripsEnv; //
+     vector<G4VPhysicalVolume*> physiDSStripsEnv; //
 
-     G4Box*             solidDownStreamDetector;  //
-     G4LogicalVolume*   logicDownStreamDetector;  //
-     G4VPhysicalVolume* physiDownStreamDetector;  //
+     vector<G4Box*>             solidDownStreamDetector;  //
+     vector<G4LogicalVolume*>   logicDownStreamDetector;  //
+     vector<G4VPhysicalVolume*> physiDownStreamDetector;  //
      
-     G4Box*             solidKapton;    //
-     G4LogicalVolume*   logicKaptonUS;  //
-     G4VPhysicalVolume* physiKaptonUS;  //
-     G4LogicalVolume*   logicKaptonDS;  //
-     G4VPhysicalVolume* physiKaptonDS;  //
+     vector<G4Box*>             solidKapton;    //
+     vector<G4LogicalVolume*>   logicKaptonUS;  //
+     vector<G4VPhysicalVolume*> physiKaptonUS;  //
+     vector<G4LogicalVolume*>   logicKaptonDS;  //
+     vector<G4VPhysicalVolume*> physiKaptonDS;  //
      
-     G4Box*             solidStrips;  //
-     G4LogicalVolume*   logicStripsUS;  //
-     G4VPhysicalVolume* physiStripsUS;  //
-     G4LogicalVolume*   logicStripsDS;  //
-     G4VPhysicalVolume* physiStripsDS;  //
-     
+     vector<G4Box*>             solidStrips;  //
+     vector<G4LogicalVolume*>   logicStripsUS;  //
+     vector<G4VPhysicalVolume*> physiStripsUS;  //
+     vector<G4LogicalVolume*>   logicStripsDS;  //
+     vector<G4VPhysicalVolume*> physiStripsDS;  //
 
-     G4VPVParameterisation* stripsParam; // pointer to chamber parameterisation
-     G4UserLimits* stepLimit;             // pointer to user step limits
+     vector<G4VPVParameterisation*> stripsParam; // pointer to chamber parameterisation
 
+     G4Tubs*             solidWaterPhantom;   //
+     G4LogicalVolume*   logicWaterPhantom;   //
+     G4VPhysicalVolume* physiWaterPhantom;   //
+
+     G4UserLimits* stepLimit;             // pointer to user step limits=
      ExN02MagneticField* fpMagField;   // pointer to the magnetic field 
-     
      ExN02DetectorMessenger* detectorMessenger;  // pointer to the Messenger
        
-     G4double fWorldLength;            // Full length of the world volume
-     G4int    NbOfChambers;            // Nb of chambers in the tracker region
-     G4double stripWidth;            // width of the chambers
-     G4double stripsPitch;	       // distance between chambers
+     //G4double fWorldLength;            // Full length of the world volume
+     //G4int    NbOfChambers;            // Nb of chambers in the tracker region
+     //G4double stripWidth;            // width of the chambers
+     //G4double stripsPitch;	       // distance between chambers
 
      // Decides which experiment to consider
      experiment_type exp_type;
+
+     typedef struct {
+
+    		G4double detectorEnvelopeHx;
+    		G4double detectorEnvelopeHy;
+    		G4double detectorEnvelopeHz;
+
+    		G4double kaptonHx;
+    		G4double kaptonHy;
+    		G4double kaptonHz;
+
+    		G4double stripsHx;
+    		G4double stripsHy;
+    		G4double stripsHz;
+
+    		G4double DMEContainerHx;
+    		G4double DMEContainerHy;
+    		G4double DMEContainerHz;
+
+    		G4double phantomRadius;
+    		G4double phantomLengthHz;
+    		G4double posPhantomZ;
+
+    		G4double extraAfterBeamCenter;
+    		G4double HalfWorldLength;
+
+    		G4double posUpStreamDetectorZ;
+    		G4double posDownStreamDetectorZ;
+    		G4double posDMEContainer1Z;
+    		G4double posDMEContainer2Z;
+
+    		G4double fWorldLength;
+    		G4int    NbOfChambers;
+    		G4double stripWidth;
+    		G4double stripsPitch;
+
+     } geobits;
+
+     geobits * gD;
+
+     typedef struct {
+    	 G4Material * Air;
+    	 G4Material * Kapton;
+    	 G4Material * Al;
+    	 G4Material * Water;
+    	 G4Material * DME;
+     } materialbits;
+
+     materialbits * mD;
+
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
