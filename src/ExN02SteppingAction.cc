@@ -55,56 +55,62 @@ void ExN02SteppingAction::UserSteppingAction(const G4Step * step)
 { 
 
 	G4Track * track = step->GetTrack();
+	G4VPhysicalVolume * vol = track->GetVolume();
+	vol->GetName();
 
 	// Consider only the primary here
-	if(track->GetTrackID() == 1) {
+	if ( vol->GetName() != "WaterPhantom" ) {
 
-		G4ThreeVector deltaPos = step->GetDeltaPosition();
-		G4StepPoint * preStepPoint = step->GetPreStepPoint();
-		G4ThreeVector pre = preStepPoint->GetPosition();
+		if(track->GetTrackID() == 1) {
 
-		// Save the preStepPoint
-		m_outputData->steps.push_back( pre );
+			G4ThreeVector deltaPos = step->GetDeltaPosition();
+			G4StepPoint * preStepPoint = step->GetPreStepPoint();
+			G4ThreeVector pre = preStepPoint->GetPosition();
 
-		//G4cout << "Pos = " << pre.x() << " , " << pre.y() << " , " << pre.z() << G4endl;
+			// Save the preStepPoint
+			m_outputData->steps.push_back( pre );
 
-		// Theta
-		G4double theta = deltaPos.angle();
-		G4double phi = deltaPos.phi();
-		// This is the interesting angle
-		m_outputData->scatteredAngle.push_back( CLHEP::pi - (theta/radian) ); // comes in radians
-		//G4cout << ( CLHEP::pi - (theta/radian) ) * 180.0 / CLHEP::pi << " --> " << phi/radian << G4endl;
+			//G4cout << "Pos = " << pre.x() << " , " << pre.y() << " , " << pre.z() << G4endl;
 
-		// This direction is not reall important as the system is symetric in this direction
-		m_outputData->scatteredPhi.push_back( phi/radian );
+			// Theta
+			G4double theta = deltaPos.angle();
+			G4double phi = deltaPos.phi();
+			// This is the interesting angle
+			m_outputData->scatteredAngle.push_back( CLHEP::pi - (theta/radian) ); // comes in radians
+			//G4cout << ( CLHEP::pi - (theta/radian) ) * 180.0 / CLHEP::pi << " --> " << phi/radian << G4endl;
 
-		//
-		m_outputData->edep.push_back( step->GetTotalEnergyDeposit()/keV );
-		//
-		//m_outputData->noniedep.push_back( step->GetNonIonizingEnergyDeposit()/keV );
+			// This direction is not reall important as the system is symetric in this direction
+			m_outputData->scatteredPhi.push_back( phi/radian );
 
-		//track->Get !!!
-		G4StepPoint * postStep = step->GetPostStepPoint();
-		G4String procName = " NoProc";
-		if( postStep ) {
-			const G4VProcess * process = step->GetPostStepPoint()->GetProcessDefinedStep();
-			if ( process ) {
-				procName = " UserLimit";
-				if (process) procName = process->GetProcessName();
-				if ( fpSteppingManager->GetfStepStatus() == fWorldBoundary ) procName = "OutOfWorld";
+			//
+			m_outputData->edep.push_back( step->GetTotalEnergyDeposit()/keV );
+			//
+			//m_outputData->noniedep.push_back( step->GetNonIonizingEnergyDeposit()/keV );
+
+			//track->Get !!!
+			G4StepPoint * postStep = step->GetPostStepPoint();
+			G4String procName = " NoProc";
+			if( postStep ) {
+				const G4VProcess * process = step->GetPostStepPoint()->GetProcessDefinedStep();
+				if ( process ) {
+					procName = " UserLimit";
+					if (process) procName = process->GetProcessName();
+					if ( fpSteppingManager->GetfStepStatus() == fWorldBoundary ) procName = "OutOfWorld";
+				}
 			}
+			m_outputData->processName.push_back( TString( procName.c_str() ) );
+
+		} else if ( track->GetTrackID() == 2 ) {
+
+			G4ThreeVector deltaPos = step->GetDeltaPosition();
+			// Theta
+			G4double theta = deltaPos.angle();
+			G4double phi = deltaPos.phi();
+			// This is the interesting angle
+			m_outputData->scatteredAngle.push_back( (theta/radian) ); // comes in radians
+			//G4cout << ( (theta/radian) ) * 180.0 / CLHEP::pi << " --> " << (phi/radian) * 180.0 / CLHEP::pi << G4endl;
 		}
-		m_outputData->processName.push_back( TString( procName.c_str() ) );
 
-	} else if ( track->GetTrackID() == 2 ) {
-
-		G4ThreeVector deltaPos = step->GetDeltaPosition();
-				// Theta
-				G4double theta = deltaPos.angle();
-				G4double phi = deltaPos.phi();
-				// This is the interesting angle
-				m_outputData->scatteredAngle.push_back( (theta/radian) ); // comes in radians
-				//G4cout << ( (theta/radian) ) * 180.0 / CLHEP::pi << " --> " << (phi/radian) * 180.0 / CLHEP::pi << G4endl;
 	}
 
 }
