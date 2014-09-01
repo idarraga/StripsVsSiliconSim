@@ -301,6 +301,8 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupGas()
 	mD->Al = nistman->FindOrBuildMaterial("G4_Al");
 	// Water
 	mD->Water = nistman->FindOrBuildMaterial("G4_WATER");
+	// C02
+	mD->CO2 = nistman->FindOrBuildMaterial("G4_CARBON_DIOXIDE");
 
 	//G4_CARBON_DIOXIDE
 
@@ -320,6 +322,12 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupGas()
 	mD->DME->AddElement(elC, 2);
 	mD->DME->AddElement(elH, 6);
 	mD->DME->AddElement(elO, 1);
+
+	// Mixture for chamber.  Considering an ideal gas.
+	G4double Mixture_density = 0.5* ( DME_density + mD->CO2->GetDensity() );
+	mD->GasMixture = new G4Material("GasMixture", Mixture_density, 2);
+	mD->GasMixture->AddMaterial(mD->DME, 50*perCent);
+	mD->GasMixture->AddMaterial(mD->CO2, 50*perCent);
 
 	// Print all the materials defined.
 	//
@@ -404,7 +412,7 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupGas()
 	G4ThreeVector positionDMEContainer1 = G4ThreeVector(0, 0, gD->posDMEContainer1Z);
 
 	solidDMEContainer = new G4Box("solidDMEContainer_GAS1", gD->DMEContainerHx, gD->DMEContainerHy, gD->DMEContainerHz);
-	logicDMEContainer = new G4LogicalVolume(solidDMEContainer, mD->DME, "logicDMEContainer_GAS1",0 ,0 ,0);
+	logicDMEContainer = new G4LogicalVolume(solidDMEContainer, mD->GasMixture, "logicDMEContainer_GAS1",0 ,0 ,0);
 	physiDMEContainer = new G4PVPlacement(0,          // no rotation
 			positionDMEContainer1,  // at (x,y,z)
 			logicDMEContainer,     // its logical volume
@@ -421,7 +429,7 @@ G4VPhysicalVolume* ExN02DetectorConstruction::Construct_SetupGas()
 	//------------------------------
 	G4ThreeVector positionDMEContainer2 = G4ThreeVector(0, 0, gD->posDMEContainer2Z);
 	solidDMEContainer2 = new G4Box("solidDMEContainer_GAS2", gD->DMEContainerHx, gD->DMEContainerHy, gD->DMEContainerHz);
-	logicDMEContainer2 = new G4LogicalVolume(solidDMEContainer2, mD->DME, "logicDMEContainer_GAS2", 0 ,0 ,0);
+	logicDMEContainer2 = new G4LogicalVolume(solidDMEContainer2, mD->GasMixture, "logicDMEContainer_GAS2", 0 ,0 ,0);
 	physiDMEContainer2 = new G4PVPlacement(0,          // no rotation
 			positionDMEContainer2,  // at (x,y,z)
 			logicDMEContainer2,     // its logical volume

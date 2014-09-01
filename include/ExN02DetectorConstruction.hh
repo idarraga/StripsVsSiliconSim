@@ -200,7 +200,9 @@ private:
 		G4Material * Kapton;
 		G4Material * Al;
 		G4Material * Water;
+		G4Material * CO2;
 		G4Material * DME;
+		G4Material * GasMixture;
 		G4Material * Si;
 	} materialbits;
 
