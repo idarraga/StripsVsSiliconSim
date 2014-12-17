@@ -64,13 +64,19 @@ ExN02DetectorConstruction::ExN02DetectorConstruction()
 	detectorMessenger = new ExN02DetectorMessenger(this);
 }
 
-ExN02DetectorConstruction::ExN02DetectorConstruction(experiment_type et)
+ExN02DetectorConstruction::ExN02DetectorConstruction(experiment_type et,  TTree * T, OutPhantomData * od)
 :solidWorld(0),  logicWorld(0),  physiWorld(0),
  stepLimit(0), fpMagField(0)
 {
+
 	fpMagField = new ExN02MagneticField();
 	detectorMessenger = new ExN02DetectorMessenger(this);
 	exp_type = et;
+
+	// Output for the SD
+	_T = T;
+	_od = od;
+
 }
 
 
@@ -647,50 +653,15 @@ void ExN02DetectorConstruction::BuildAGasDetector(G4LogicalVolume * log_dme, G4S
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void ExN02DetectorConstruction::setTargetMaterial(G4String)
+void ExN02DetectorConstruction::ConstructSDandField()
 {
 
-	/*
-	// search the material by its name
-	G4Material* pttoMaterial = G4Material::GetMaterial(materialName);
-	if (pttoMaterial)
-	{TargetMater = pttoMaterial;
-	logicTarget->SetMaterial(pttoMaterial);
-	G4cout << "\n----> The target is " << fTargetLength/cm << " cm of "
-			<< materialName << G4endl;
-	}
-	 */
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void ExN02DetectorConstruction::setChamberMaterial(G4String)
-{
-	/*
-	// search the material by its name
-	G4Material* pttoMaterial = G4Material::GetMaterial(materialName);
-	if (pttoMaterial)
-	{ChamberMater = pttoMaterial;
-	logicChamber->SetMaterial(pttoMaterial);
-	G4cout << "\n----> The chambers are " << ChamberWidth/cm << " cm of "
-			<< materialName << G4endl;
-	}
-	 */
+	// Sensitive NaI
+	// _NaILogic
+	G4SDManager * SDman = G4SDManager::GetSDMpointer();
+	ExN02TrackerSD * Phantom_SD = new ExN02TrackerSD("Phantom_SD");
+	Phantom_SD->SetOutput(_T, _od);
+	SDman->AddNewDetector( Phantom_SD );
+	logicWaterPhantom->SetSensitiveDetector( Phantom_SD );
 
 }
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void ExN02DetectorConstruction::SetMagField(G4double fieldValue)
-{
-	fpMagField->SetMagFieldValue(fieldValue);
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void ExN02DetectorConstruction::SetMaxStep(G4double maxStep)
-{
-	if ((stepLimit)&&(maxStep>0.)) stepLimit->SetMaxAllowedStep(maxStep);
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

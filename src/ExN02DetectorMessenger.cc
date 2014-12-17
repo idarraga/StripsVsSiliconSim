@@ -89,17 +89,9 @@ ExN02DetectorMessenger::~ExN02DetectorMessenger()
 
 void ExN02DetectorMessenger::SetNewValue(G4UIcommand* command,G4String newValue)
 { 
-  if( command == TargMatCmd )
-   { myDetector->setTargetMaterial(newValue);}
+  //if( command == TargMatCmd )
+  // { myDetector->setTargetMaterial(newValue);}
    
-  if( command == ChamMatCmd )
-   { myDetector->setChamberMaterial(newValue);}  
-  
-  if( command == FieldCmd )
-   { myDetector->SetMagField(FieldCmd->GetNewDoubleValue(newValue));}
-      
-  if( command == StepMaxCmd )
-   { myDetector->SetMaxStep(StepMaxCmd->GetNewDoubleValue(newValue));}   
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

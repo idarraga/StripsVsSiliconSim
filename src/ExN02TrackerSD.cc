@@ -42,8 +42,8 @@
 ExN02TrackerSD::ExN02TrackerSD(G4String name)
 :G4VSensitiveDetector(name)
 {
-  G4String HCname;
-  collectionName.insert(HCname="trackerCollection");
+	G4String HCname;
+	collectionName.insert(HCname="trackerCollection");
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -54,46 +54,78 @@ ExN02TrackerSD::~ExN02TrackerSD(){ }
 
 void ExN02TrackerSD::Initialize(G4HCofThisEvent* HCE)
 {
-  trackerCollection = new ExN02TrackerHitsCollection
-                          (SensitiveDetectorName,collectionName[0]); 
-  static G4int HCID = -1;
-  if(HCID<0)
-  { HCID = G4SDManager::GetSDMpointer()->GetCollectionID(collectionName[0]); }
-  HCE->AddHitsCollection( HCID, trackerCollection ); 
+	trackerCollection = new ExN02TrackerHitsCollection
+			(SensitiveDetectorName,collectionName[0]);
+	static G4int HCID = -1;
+	if(HCID<0)
+	{ HCID = G4SDManager::GetSDMpointer()->GetCollectionID(collectionName[0]); }
+	HCE->AddHitsCollection( HCID, trackerCollection );
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-G4bool ExN02TrackerSD::ProcessHits(G4Step* aStep,G4TouchableHistory*)
+G4bool ExN02TrackerSD::ProcessHits(G4Step * aStep, G4TouchableHistory *)
 {
-  G4double edep = aStep->GetTotalEnergyDeposit();
 
-  if(edep==0.) return false;
+	G4double edep = aStep->GetTotalEnergyDeposit();
 
-  ExN02TrackerHit* newHit = new ExN02TrackerHit();
-  newHit->SetTrackID  (aStep->GetTrack()->GetTrackID());
-  newHit->SetChamberNb(aStep->GetPreStepPoint()->GetTouchableHandle()
-                                               ->GetCopyNumber());
-  newHit->SetEdep     (edep);
-  newHit->SetPos      (aStep->GetPostStepPoint()->GetPosition());
-  trackerCollection->insert( newHit );
-  
-  //newHit->Print();
-  //newHit->Draw();
+	if(edep==0.) return false;
 
-  return true;
+	G4StepPoint * spoint = aStep->GetPostStepPoint();
+	G4Track * trk = aStep->GetTrack();
+
+	if( trk->GetTrackID() == 1 ) {
+
+		_od->edep.push_back( edep/keV );
+		_od->x.push_back( spoint->GetPosition().x()/mm );
+		_od->y.push_back( spoint->GetPosition().y()/mm );
+		_od->z.push_back( spoint->GetPosition().z()/mm );
+	}
+
+	ExN02TrackerHit* newHit = new ExN02TrackerHit();
+	newHit->SetTrackID  (aStep->GetTrack()->GetTrackID());
+	newHit->SetChamberNb(aStep->GetPreStepPoint()->GetTouchableHandle()
+			->GetCopyNumber());
+	newHit->SetEdep     (edep);
+	newHit->SetPos      (aStep->GetPostStepPoint()->GetPosition());
+	trackerCollection->insert( newHit );
+
+	//newHit->Print();
+	//newHit->Draw();
+
+	return true;
+}
+
+double ExN02TrackerSD::SDVectorSum(vector<double> v) {
+	vector<double>::iterator i = v.begin();
+	vector<double>::iterator iE = v.end();
+	double sum = 0.;
+	for ( ; i != iE ; i++ ) {
+		sum += (*i);
+	}
+	return sum;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void ExN02TrackerSD::EndOfEvent(G4HCofThisEvent*)
 {
-  if (verboseLevel>0) { 
-     G4int NbHits = trackerCollection->entries();
-     G4cout << "\n-------->Hits Collection: in this event they are " << NbHits 
-            << " hits in the tracker chambers: " << G4endl;
-     for (G4int i=0;i<NbHits;i++) (*trackerCollection)[i]->Print();
-    } 
+	if (verboseLevel>0) {
+		G4int NbHits = trackerCollection->entries();
+		G4cout << "\n-------->Hits Collection: in this event they are " << NbHits
+				<< " hits in the tracker chambers: " << G4endl;
+		for (G4int i=0;i<NbHits;i++) (*trackerCollection)[i]->Print();
+	}
+
+	// Fill TTree
+	_T->Fill();
+
+	// Clean vars
+	_od->edep.clear();
+	_od->x.clear();
+	_od->y.clear();
+	_od->z.clear();
+
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

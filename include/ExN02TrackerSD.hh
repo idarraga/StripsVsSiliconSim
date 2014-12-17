@@ -35,9 +35,23 @@
 
 #include "G4VSensitiveDetector.hh"
 #include "ExN02TrackerHit.hh"
+#include "TTree.h"
 
 class G4Step;
 class G4HCofThisEvent;
+
+#include <vector>
+
+using namespace std;
+using namespace CLHEP;
+
+
+typedef struct {
+	vector<double> edep;
+	vector<double> x;
+	vector<double> y;
+	vector<double> z;
+} OutPhantomData;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -51,8 +65,15 @@ class ExN02TrackerSD : public G4VSensitiveDetector
       G4bool ProcessHits(G4Step*, G4TouchableHistory*);
       void EndOfEvent(G4HCofThisEvent*);
 
+      void SetOutput(TTree * T, OutPhantomData * od) { _T = T ; _od = od; };
+      double SDVectorSum(vector<double>);
+
   private:
+
       ExN02TrackerHitsCollection* trackerCollection;
+
+      TTree * _T;
+      OutPhantomData * _od;
 
 };
 

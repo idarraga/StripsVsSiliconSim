@@ -43,6 +43,7 @@ using namespace std;
 #include "globals.hh"
 #include "G4VUserDetectorConstruction.hh"
 #include "ExN02MagneticField.hh"
+#include "ExN02TrackerSD.hh"
 
 class G4Box;
 class G4Tubs;
@@ -52,6 +53,8 @@ class G4Material;
 class G4VPVParameterisation;
 class G4UserLimits;
 class ExN02DetectorMessenger;
+
+class TTree;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -66,12 +69,14 @@ class ExN02DetectorConstruction : public G4VUserDetectorConstruction
 public:
 
 	ExN02DetectorConstruction();
-	ExN02DetectorConstruction(experiment_type);
+	ExN02DetectorConstruction(experiment_type, TTree * , OutPhantomData * );
 	~ExN02DetectorConstruction();
 
 public:
 
 	G4VPhysicalVolume * Construct();
+	void ConstructSDandField();
+
 	G4VPhysicalVolume * Construct_SetupGas();
 	G4VPhysicalVolume * Construct_SetupSilicon();
 
@@ -79,11 +84,6 @@ public:
 	void BuildASiDetector(G4LogicalVolume *, G4String name);
 
 	G4double GetWorldFullLength()   {return gD->fWorldLength;};
-
-	void setTargetMaterial (G4String);
-	void setChamberMaterial(G4String);
-	void SetMagField(G4double);
-	void SetMaxStep (G4double);
 
 private:
 
@@ -149,6 +149,10 @@ private:
 
 	// Decides which experiment to consider
 	experiment_type exp_type;
+
+	// Output for SD
+	TTree * _T;
+	OutPhantomData * _od;
 
 	typedef struct {
 

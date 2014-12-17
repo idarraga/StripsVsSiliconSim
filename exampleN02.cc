@@ -73,18 +73,13 @@ using namespace std;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void SaveRandomSeed(long int seed, TString name);
+bool CheckPars(int argc, char ** argv);
 
-
-int main(int argc,char** argv)
+int main(int argc, char ** argv)
 {
 
-	// Input parameters
-	if ( argc < 2 ) {
-		G4cout << "use: " << G4endl;
-		G4cout << "		" << argv[0] << "experiment(1=strips,2=silicon)  macro" << G4endl;
-		exit(1);
-	}
-
+	// Pars
+	if ( ! CheckPars(argc, argv) ) return 1;
 
 	// Seed the random number generator manually
 	time_t rawtime;
@@ -104,34 +99,47 @@ int main(int argc,char** argv)
 	reng->setSeed(myseed);
 	G4Random::setTheEngine(reng);
 
-	// Change the MC seed
-	//CLHEP::HepRandom::setTheSeed(myseed);
-
-
 	// Check the experiment type entered by the user
 	experiment_type expt = (experiment_type) atoi(argv[1]);
 
 	// Output root file and save the random seed
 	TString outputfn =  "output_";
+	TString output_ph_fn =  "output_";
+
 	if(expt == __SETUP_STRIPS) {
 		outputfn += "Strips.root";
+		output_ph_fn += "Phantom_Strips.root";
 		SaveRandomSeed(myseed, "Strips");
 	} else if(expt == __SETUP_SILICON1) {
 		outputfn += "Si.root";
+		output_ph_fn += "Phantom_Si.root";
 		SaveRandomSeed(myseed, "Si");
 	} else {
 		G4cout << "[ERR ] Setup requested [" << (G4int)expt << "] can't be found.  Giving up." << G4endl;
 		return 1;
 	}
+
+	// Output
 	Outdata * output_data = new Outdata;
 	TFile * of = new TFile(outputfn, "RECREATE");
 	TTree * oT = new TTree("T","T");
+
 	oT->Branch("totalScatteringAngle", &(output_data->totalScatteringAngle), "totalScatteringAngle/D");
 	oT->Branch("scatteredAngle", &(output_data->scatteredAngle) );
 	oT->Branch("scatteredPhi", &(output_data->scatteredPhi) );
 	oT->Branch("edep", &(output_data->edep) );
 	oT->Branch("noniedep", &(output_data->noniedep) );
 	oT->Branch("processName", &(output_data->processName) );
+
+	// Output Phantom as SD
+	OutPhantomData * output_phantom_data = new OutPhantomData;
+	TFile * ophf = new TFile(output_ph_fn, "RECREATE");
+	TTree * ophT = new TTree("TPhantom","TPhantom");
+	ophT->Branch("edep", &(output_phantom_data->edep) );
+
+	ophT->Branch("x", &(output_phantom_data->x) );
+	ophT->Branch("y", &(output_phantom_data->y) );
+	ophT->Branch("z", &(output_phantom_data->z) );
 
 	// Run manager
 	//
@@ -140,7 +148,7 @@ int main(int argc,char** argv)
 	//runManager->SetNumberOfThreads(2);
 	// User Initialization classes (mandatory)
 	//
-	ExN02DetectorConstruction* detector = new ExN02DetectorConstruction(expt);
+	ExN02DetectorConstruction* detector = new ExN02DetectorConstruction(expt, ophT, output_phantom_data);
 	runManager->SetUserInitialization(detector);
 
 	// Physics List
@@ -148,20 +156,9 @@ int main(int argc,char** argv)
 	G4VModularPhysicsList * phys = 0;
 	//G4String physName = "FTFP_BERT";
 	G4String physName = "QGSP_BERT_EMY";
-	// reference PhysicsList via its name
+	// Reference PhysicsList via its name
 	phys = factory.GetReferencePhysList(physName);
-
-	//
-	//G4VUserPhysicsList* physics = new ExN02PhysicsList;
-	//runManager->SetUserInitialization(physics);
 	runManager->SetUserInitialization(phys);
-
-
-	// User Verbose output class
-	//
-	//G4VSteppingVerbose* verbosity = new ExN02SteppingVerbose;
-	//G4VSteppingVerbose::SetInstance(verbosity);
-
 
 	// User Action classes
 	//
@@ -218,17 +215,25 @@ int main(int argc,char** argv)
 	//                 owned and deleted by the run manager, so they should not
 	//                 be deleted in the main() program !
 
+	// First file
 	of->cd();
 	oT->Write();
 	of->Close();
 
-	delete runManager;
+	// Second file
+	ophf->cd();
+	ophT->Write();
+	ophf->Close();
 
 	delete output_data;
-	//delete oT;
-	//delete of;
+	delete output_phantom_data;
 
-	//delete verbosity;
+#ifdef G4VIS_USE
+	delete visManager;
+#endif
+	delete runManager;
+
+	G4cout << "[DONE]" << G4endl;
 
 	return 0;
 }
@@ -242,6 +247,18 @@ void SaveRandomSeed(long int seed, TString name) {
 	ofs << seed << endl;
 	ofs.close();
 
+}
+
+bool CheckPars(int argc, char ** argv) {
+
+	// Input parameters
+	if ( argc < 2 ) {
+		G4cout << "use: " << G4endl;
+		G4cout << "		" << argv[0] << "experiment(1=strips,2=silicon)  macro" << G4endl;
+		return false;
+	}
+
+	return true; // OK
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
